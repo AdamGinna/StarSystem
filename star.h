@@ -9,6 +9,7 @@ public:
     Star(int x, int y, int z, double radius, double lightIntesity)
         :Sphere(x, y, z, radius)
     {this->lightIntensity = lightIntesity;}
+    double getIntensity();
 
 private:
     double lightIntensity;

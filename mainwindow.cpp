@@ -7,7 +7,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     sphere = new Sphere(0,0,2000,200);
     sphere->setImage(":/earth_daymap.jpg");
-    sun = new Star(400,0,1500,100,2.5);
+    sun = new Star(700,0,1500,250,2.5);
     sun->setImage(":/2k_sun.jpg");
     light.push_back(sun);
     ui->setupUi(this);
@@ -126,7 +126,7 @@ void MainWindow::prepareImage(QImage *img, std::vector<QVector3D> points,Sphere*
     int height = img->height()/2;
     std::vector<QVector3D > p1;
     std::vector<QVector3D > p2;
-    points = projection(points);
+    //std::vector<QVector3D >pointsProjected = projection(points);
     QImage* img_earth = sphere->getImage();
     for (int i = 0;i<size-2;i = i + 3)
     {
@@ -136,9 +136,9 @@ void MainWindow::prepareImage(QImage *img, std::vector<QVector3D> points,Sphere*
         p1.push_back(points[indices[i%size]]);
         p1.push_back(points[indices[(i+1)%size]]);
         p1.push_back(points[indices[(i+2)%size]]);
-        p2.push_back(sphere->MappingPoint(i%size));
-        p2.push_back(sphere->MappingPoint((i+1)%size));
-        p2.push_back(sphere->MappingPoint((i+2)%size));
+        p2.push_back(sphere->MappingPoint(indices[i%size]));
+        p2.push_back(sphere->MappingPoint(indices[(i+1)%size]));
+        p2.push_back(sphere->MappingPoint(indices[(i+2)%size]));
         //if(abs(p2[1].first-p2[2].first)>1000  || abs(p2[1].second-p2[2].second)>100)
             //continue;
         teksturing(p1,p2,sphere,img,img_earth);
@@ -324,9 +324,9 @@ void MainWindow::paintC(int x, int y, QColor color, QImage *img)
 }
 
 
-void MainWindow::teksturing(std::vector<QVector3D > points2,std::vector<QVector3D > points1,Sphere* sphere,QImage *img,QImage *img_orginal)
+void MainWindow::teksturing(std::vector<QVector3D > points,std::vector<QVector3D > points1,Sphere* sphere,QImage *img,QImage *img_orginal)
 {
-    //std::vector<QVector3D > points2 = projection(points);
+    std::vector<QVector3D > points2 = projection(points);
 
     int minX = std::min({points2[0].x(),points2[1].x(),points2[2].x()});
     int maxX = std::max({points2[0].x(),points2[1].x(),points2[2].x()});
@@ -341,8 +341,8 @@ void MainWindow::teksturing(std::vector<QVector3D > points2,std::vector<QVector3
     ptrA = img_orginal->bits();
 
     double mian = (double)((points2[1].x()-points2[0].x())*(points2[2].y()-points2[0].y())-(points2[1].y()-points2[0].y())*(points2[2].x()-points2[0].x()));
-    if(mian< 0.01)
-        mian = 1;
+    if(mian< 0.0001)
+        mian = 0.0001;
     for(int i =minY;i<=maxY;i++)
         for (int j=minX;j<=maxX;j++)
         {
@@ -357,9 +357,9 @@ void MainWindow::teksturing(std::vector<QVector3D > points2,std::vector<QVector3
             int y = (u*points1[0].y()+v*points1[1].y()+w*points1[2].y());
 
 
-            //int x1 =(u*points[0].x()+v*points[1].x()+w*points[2].x());
-            //int y1 = (u*points[0].y()+v*points[1].y()+w*points[2].y());
-            //int z1 = (u*points[0].z()+v*points[1].z()+w*points[2].z());
+            int x1 =(u*points[0].x()+v*points[1].x()+w*points[2].x());
+            int y1 = (u*points[0].y()+v*points[1].y()+w*points[2].y());
+            int z1 = (u*points[0].z()+v*points[1].z()+w*points[2].z());
 
 
             /*
@@ -367,10 +367,10 @@ void MainWindow::teksturing(std::vector<QVector3D > points2,std::vector<QVector3
             ptr[450*4*i + 4*j + 1] = ptrA[450*4*y + 4*x+1]; // Skladowa GREEN
             ptr[450*4*i + 4*j + 2] = ptrA[450*4*y + 4*x+2]; // Skladowa RED
             */
-            //QVector3D SpherePoint(x1,y1,z1);
-            //color = shade(img_orginal->pixelColor(x,y),SpherePoint,points);
-           // paintC(j,i,color,img);
-            paintC(j,i,img_orginal->pixelColor(x,y),img);
+            QVector3D SpherePoint(x1,y1,z1);
+            color = shade(img_orginal->pixelColor(x,y),SpherePoint,points);
+            paintC(j,i,color,img);
+            //paintC(j,i,img_orginal->pixelColor(x,y),img);
         }
 }
 
@@ -408,10 +408,14 @@ QVector3D MainWindow::barycentralPoint(std::vector<QVector3D> p1,std::vector<QVe
 
 QColor MainWindow::shade(QColor color, QVector3D point, std::vector<QVector3D> triangle)
 {
+
     QVector3D N1(point.x()-triangle[0].x(),point.y()-triangle[0].y(),point.z()-triangle[0].z());
     QVector3D N2(point.x()-triangle[1].x(),point.y()-triangle[1].y(),point.z()-triangle[1].z());
+    QVector3D N3(point.x()-triangle[2].x(),point.y()-triangle[2].y(),point.z()-triangle[2].z());
     QVector3D N;
-    N  = N.normal(N1,N2);
+
+  // if( (N  = N.normal(N2,N3)).length() < 0.1 )
+       N = N.normal(N1,N2,N3);
     N.normalize();
 
     QVector3D V(point.x() - cameraPosition.x(),point.y() - cameraPosition.y(),point.z() - cameraPosition.z());
@@ -425,13 +429,17 @@ QColor MainWindow::shade(QColor color, QVector3D point, std::vector<QVector3D> t
         QVector3D R = 2*(L*N)*N-L;
         R.normalize();
 
-        double IP = 0.5*L.dotProduct(L,N)*light[i]->getIntensity() + 1.*pow(R.dotProduct(R,V),100)*light[i]->getIntensity();
+        double IP = 0.8*L.dotProduct(L,N)*light[i]->getIntensity() + 1*pow(R.dotProduct(R,V),200)*light[i]->getIntensity();
 
-
+        /*
         color.setRed(std::max(color.red() + IP,0.));
         color.setGreen(std::max(color.green() + IP,0.));
         color.setBlue(std::max(color.blue() + IP,0.));
+        */
 
+        color.setRed(std::max(std::min(color.red()*IP,255.),0.));
+        color.setGreen(std::max(std::min( color.green()*IP,255.),0.));
+        color.setBlue(std::max(std::min( color.blue()*IP,255.),0.));
         return color;
     }
 
