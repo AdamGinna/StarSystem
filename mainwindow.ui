@@ -409,7 +409,7 @@
      <number>450</number>
     </property>
     <property name="value">
-     <number>0</number>
+     <number>135</number>
     </property>
     <property name="orientation">
      <enum>Qt::Horizontal</enum>

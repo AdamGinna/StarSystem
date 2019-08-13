@@ -38,7 +38,8 @@ private:
     void paintC(int,int,QColor,QImage*);
     void teksturing(std::vector<QVector3D >,std::vector<QVector3D >,Sphere*,QImage *img,QImage *img_orginal);
     QVector3D barycentralPoint(std::vector<QVector3D> p1,std::vector<QVector3D> p2,QVector3D point);
-    QColor shade(QColor,QVector3D, std::vector<QVector3D>, std::vector<QVector3D>);
+    QColor shade(QColor color, QVector3D point, QVector3D N);
+    QVector3D interpolationNormal(std::vector<QVector3D>,QVector3D,std::vector<QVector3D>);
 
 
 private slots:

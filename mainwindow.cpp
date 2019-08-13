@@ -64,7 +64,7 @@ std::vector<QVector3D> MainWindow::projection(std::vector<QVector3D> points)
     for (int i = 0;i<points.size();i++)
     {
         p = points[i];
-        if(p.z()-cameraPosition.z()>0.01)
+        if(p.z()>0.01)
         {
         points[i].setX((p.x()*cameraPosition.z())/(p.z()+cameraPosition.z()));
         points[i].setY((p.y()*cameraPosition.z())/(p.z()+cameraPosition.z()));
@@ -386,8 +386,10 @@ void MainWindow::teksturing(std::vector<QVector3D > points,std::vector<QVector3D
             ptr[450*4*i + 4*j + 1] = ptrA[450*4*y + 4*x+1]; // Skladowa GREEN
             ptr[450*4*i + 4*j + 2] = ptrA[450*4*y + 4*x+2]; // Skladowa RED
             */
-            QVector3D SpherePoint(j,i,z1);
-            color = shade(img_orginal->pixelColor(x,y),SpherePoint,points2,normals);
+            QVector3D p(j,i,z1);
+            QVector3D Normal = interpolationNormal(points2,p,normals);
+            QVector3D SpherePoint(x1,y1,z1);
+            color = shade(img_orginal->pixelColor(x,y),SpherePoint,Normal);
             paintC(j,i,color,img);
             //paintC(j,i,img_orginal->pixelColor(x,y),img);
         }
@@ -426,9 +428,44 @@ QVector3D MainWindow::barycentralPoint(std::vector<QVector3D> p1,std::vector<QVe
     return QVector3D(u,v,w);
 }
 
-QColor MainWindow::shade(QColor color, QVector3D point, std::vector<QVector3D> triangle, std::vector<QVector3D> normals)
+QColor MainWindow::shade(QColor color, QVector3D point, QVector3D N)
 {
 
+
+
+    QVector3D V(point.x() - cameraPosition.x(),point.y() - cameraPosition.y(),point.z() - cameraPosition.z());
+    V.normalize();
+
+    for(int i=0;i<light.size();i++)
+    {
+        QVector3D L1 = light[i]->getPosition();
+        QVector3D L(point.x()-L1.x(),point.y()-L1.y(),point.z()-L1.z());
+        L.normalize();
+        QVector3D R = 2*(L*N)*N-L;
+        R.normalize();
+
+        double IP = 0.7*L.dotProduct(L,N)*light[i]->getIntensity() + 0.01*pow(R.dotProduct(R,V),200)*light[i]->getIntensity();
+
+        /*
+        color.setRed(std::max(color.red() + IP,0.));
+        color.setGreen(std::max(color.green() + IP,0.));
+        color.setBlue(std::max(color.blue() + IP,0.));
+        */
+
+        IP = std::max(0.,IP);
+
+        color.setRed(std::max(std::min(color.red()*IP,255.),0.));
+        color.setGreen(std::max(std::min( color.green()*IP,255.),0.));
+        color.setBlue(std::max(std::min( color.blue()*IP,255.),0.));
+        return color;
+    }
+
+
+
+}
+
+QVector3D MainWindow::interpolationNormal(std::vector<QVector3D> triangle,QVector3D point,std::vector<QVector3D> normals)
+{
     double sot = triangle[1].y() - triangle[0].y();
     if(abs(sot) < 0.1)
         sot=1;
@@ -465,35 +502,6 @@ QColor MainWindow::shade(QColor color, QVector3D point, std::vector<QVector3D> t
 
     N.normalize();
 
-    QVector3D V(point.x() - cameraPosition.x(),point.y() - cameraPosition.y(),point.z() - cameraPosition.z());
-    V.normalize();
-
-    for(int i=0;i<light.size();i++)
-    {
-        QVector3D L1 = light[i]->getPosition();
-        QVector3D L(point.x()-L1.x(),point.y()-L1.y(),point.z()-L1.z());
-        L.normalize();
-        QVector3D R = 2*(L*N)*N-L;
-        R.normalize();
-
-        double IP = 0.7*L.dotProduct(L,N)*light[i]->getIntensity() + 0.01*pow(R.dotProduct(R,V),200)*light[i]->getIntensity();
-
-        /*
-        color.setRed(std::max(color.red() + IP,0.));
-        color.setGreen(std::max(color.green() + IP,0.));
-        color.setBlue(std::max(color.blue() + IP,0.));
-        */
-
-        IP = std::max(0.,IP);
-
-        color.setRed(std::max(std::min(color.red()*IP,255.),0.));
-        color.setGreen(std::max(std::min( color.green()*IP,255.),0.));
-        color.setBlue(std::max(std::min( color.blue()*IP,255.),0.));
-        return color;
-    }
-
-
+    return N;
 
 }
-
-

@@ -46,8 +46,8 @@ QVector3D Sphere::MappingPoint(QVector3D point)
 {
     point.normalize();
     int u,v;
-    u = (((double)atan2(point.z(),point.x()) / (2*3.14)) + 0.5)*(img->width()-1);
-    v = (0.5 - (double)asin((double)point.y()/3.14))*(img->height()-1);
+    u = (((double)atan2(point.z(),point.x()) / (2*3.14)) + 0.5)*(img->width());
+    v = (0.5 - (double)asin((double)point.y()/3.14))*(img->height());
 
     return QVector3D(u,v,point.z());
 
