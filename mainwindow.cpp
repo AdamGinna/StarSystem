@@ -7,7 +7,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     sphere = new Sphere(0,0,2000,200);
     sphere->setImage(":/earth_daymap.jpg");
-    sun = new Star(700,0,1500,250,2.5);
+    sun = new Star(700,0,2500,250,2.5);
     sun->setImage(":/2k_sun.jpg");
     light.push_back(sun);
     ui->setupUi(this);
@@ -327,6 +327,7 @@ void MainWindow::paintC(int x, int y, QColor color, QImage *img)
 void MainWindow::teksturing(std::vector<QVector3D > points,std::vector<QVector3D > points1,Sphere* sphere,QImage *img,QImage *img_orginal)
 {
     std::vector<QVector3D > points2 = projection(points);
+    QColor color;
 
     int minX = std::min({points2[0].x(),points2[1].x(),points2[2].x()});
     int maxX = std::max({points2[0].x(),points2[1].x(),points2[2].x()});
@@ -334,16 +335,34 @@ void MainWindow::teksturing(std::vector<QVector3D > points,std::vector<QVector3D
     int minY = std::min({points2[0].y(),points2[1].y(),points2[2].y()});
     int maxY = std::max({points2[0].y(),points2[1].y(),points2[2].y()});
 
-    QColor color;
+    std::vector<QVector3D > normals;
 
-    unsigned char* ptr,*ptrA;
-    ptr = img->bits();
-    ptrA = img_orginal->bits();
+    QVector3D N1(points[0].x()-sphere->getPosition().x(),points[0].y()-sphere->getPosition().y(),points[0].z()-sphere->getPosition().z());
+    normals.push_back(N1.normalized());
+
+    N1 = QVector3D(points[1].x()-sphere->getPosition().x(),points[1].y()-sphere->getPosition().y(),points[1].z()-sphere->getPosition().z());
+    normals.push_back(N1.normalized());
+
+    N1 = QVector3D(points[2].x()-sphere->getPosition().x(),points[2].y()-sphere->getPosition().y(),points[2].z()-sphere->getPosition().z());
+    normals.push_back(N1.normalized());
+    /*
+    QVector3D N1(points[0].x()-points[1].x(),points[0].y()-points[1].y(),points[0].z()-points[1].z());
+    QVector3D N2(points[0].x()-points[2].x(),points[0].y()-points[2].y(),points[0].z()-points[2].z());
+    normals.push_back(N1.normal(N1,N2));
+    N1 = QVector3D(points[1].x()-points[0].x(),points[1].y()-points[0].y(),points[1].z()-points[0].z());
+    N2 = QVector3D(points[1].x()-points[2].x(),points[1].y()-points[2].y(),points[1].z()-points[2].z());
+    normals.push_back(N1.normal(N1,N2));
+    N1 = QVector3D(points[2].x()-points[0].x(),points[2].y()-points[0].y(),points[2].z()-points[0].z());
+    N2 = QVector3D(points[2].x()-points[1].x(),points[2].y()-points[1].y(),points[2].z()-points[1].z());
+    normals.push_back(N1.normal(N1,N2));
+    */
 
     double mian = (double)((points2[1].x()-points2[0].x())*(points2[2].y()-points2[0].y())-(points2[1].y()-points2[0].y())*(points2[2].x()-points2[0].x()));
     if(mian< 0.0001)
         mian = 0.0001;
+
     for(int i =minY;i<=maxY;i++)
+    {
         for (int j=minX;j<=maxX;j++)
         {
 
@@ -367,11 +386,12 @@ void MainWindow::teksturing(std::vector<QVector3D > points,std::vector<QVector3D
             ptr[450*4*i + 4*j + 1] = ptrA[450*4*y + 4*x+1]; // Skladowa GREEN
             ptr[450*4*i + 4*j + 2] = ptrA[450*4*y + 4*x+2]; // Skladowa RED
             */
-            QVector3D SpherePoint(x1,y1,z1);
-            color = shade(img_orginal->pixelColor(x,y),SpherePoint,points);
+            QVector3D SpherePoint(j,i,z1);
+            color = shade(img_orginal->pixelColor(x,y),SpherePoint,points2,normals);
             paintC(j,i,color,img);
             //paintC(j,i,img_orginal->pixelColor(x,y),img);
         }
+    }
 }
 
 
@@ -406,16 +426,43 @@ QVector3D MainWindow::barycentralPoint(std::vector<QVector3D> p1,std::vector<QVe
     return QVector3D(u,v,w);
 }
 
-QColor MainWindow::shade(QColor color, QVector3D point, std::vector<QVector3D> triangle)
+QColor MainWindow::shade(QColor color, QVector3D point, std::vector<QVector3D> triangle, std::vector<QVector3D> normals)
 {
 
-    QVector3D N1(point.x()-triangle[0].x(),point.y()-triangle[0].y(),point.z()-triangle[0].z());
-    QVector3D N2(point.x()-triangle[1].x(),point.y()-triangle[1].y(),point.z()-triangle[1].z());
-    QVector3D N3(point.x()-triangle[2].x(),point.y()-triangle[2].y(),point.z()-triangle[2].z());
+    double sot = triangle[1].y() - triangle[0].y();
+    if(abs(sot) < 0.1)
+        sot=1;
+
+    QVector3D N1 = normals[0]*(triangle[1].y() - point.y())/(sot)  +  normals[1]*(point.y() - triangle[0].y())/(sot);
+
+    sot = triangle[2].y() - triangle[0].y();
+        if(abs(sot) < 0.1)
+            sot=1;
+    QVector3D N2 = normals[0]*(triangle[2].y() - point.y())/(sot)  +  normals[2]*(point.y() - triangle[0].y())/(sot);
+
+    double mian = triangle[0].y()-triangle[1].y();
+    if(abs(mian) > 0.1)
+        mian = 1/mian;
+    else
+        mian = 1;
+    double xD = (triangle[0].x()-triangle[1].x())*mian*point.y() + (triangle[0].x()-((triangle[0].x()-triangle[1].x())*mian*triangle[0].y()));
+
+    mian = triangle[0].y()-triangle[2].y();
+        if(abs(mian) > 0.1)
+            mian = 1/mian;
+        else
+             mian = 1;
+
+    double xF = ((triangle[0].x()-triangle[2].x())*mian*point.y()) + (triangle[0].x()-((triangle[0].x()-triangle[2].x())*mian*triangle[0].y()));
+
     QVector3D N;
 
-  // if( (N  = N.normal(N2,N3)).length() < 0.1 )
-       N = N.normal(N1,N2,N3);
+    if(abs(xF-xD) > 0)
+      N = N1*(xF-point.x())/(xF-xD) + N2*(point.x()-xD)/(xF-xD);
+    else
+       N = N1*(xF-point.x()) + N2*(point.x()-xD);
+
+
     N.normalize();
 
     QVector3D V(point.x() - cameraPosition.x(),point.y() - cameraPosition.y(),point.z() - cameraPosition.z());
@@ -429,13 +476,15 @@ QColor MainWindow::shade(QColor color, QVector3D point, std::vector<QVector3D> t
         QVector3D R = 2*(L*N)*N-L;
         R.normalize();
 
-        double IP = 0.8*L.dotProduct(L,N)*light[i]->getIntensity() + 1*pow(R.dotProduct(R,V),200)*light[i]->getIntensity();
+        double IP = 0.7*L.dotProduct(L,N)*light[i]->getIntensity() + 0.01*pow(R.dotProduct(R,V),200)*light[i]->getIntensity();
 
         /*
         color.setRed(std::max(color.red() + IP,0.));
         color.setGreen(std::max(color.green() + IP,0.));
         color.setBlue(std::max(color.blue() + IP,0.));
         */
+
+        IP = std::max(0.,IP);
 
         color.setRed(std::max(std::min(color.red()*IP,255.),0.));
         color.setGreen(std::max(std::min( color.green()*IP,255.),0.));
@@ -446,3 +495,5 @@ QColor MainWindow::shade(QColor color, QVector3D point, std::vector<QVector3D> t
 
 
 }
+
+
