@@ -20,12 +20,24 @@ public:
     void setImage(QString);
     void setPosition(QVector3D);
     void setPosition(int,int,int);
+    void setAplhaX(double);
+    void setAplhaY(double);
+    void setAplhaZ(double);
+
+    double getAlphax();
+
+    double getAlphay();
+
+    double getAlphaz();
 
 protected:
     std::vector<QVector3D> points;
     double radius;
     QVector3D position;
     QImage* img;
+    double alphax;
+    double alphay;
+    double alphaz;
 
     void doPoints();
     std::vector<QVector3D> scaling(double,std::vector<QVector3D>);

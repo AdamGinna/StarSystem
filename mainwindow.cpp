@@ -5,11 +5,6 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    sphere = new Sphere(0,0,2000,200);
-    sphere->setImage(":/earth_daymap.jpg");
-    sun = new Star(700,0,2500,250,2.5);
-    sun->setImage(":/2k_sun.jpg");
-    light.push_back(sun);
     ui->setupUi(this);
     szer = ui->frame->width();
     wys = ui->frame->height();
@@ -46,13 +41,16 @@ void MainWindow::transformation()
     delete img;
     img = new QImage(szer,wys,QImage::Format_RGB32);
     img->fill(0);
-    double scale = ui->ScalingHigh->value()/5.;
-    double alphax = (double)ui->Rotation_X->value()/360*3.14*2;
-    double alphay = (double)ui->Rotation_Y->value()/360*3.14*2;
-    double alphaz = (double)ui->Rotation_Z->value()/360*3.14*2;
-    double shX = ui->shearingX->value()/40.;
-    double shY = ui->shearingY->value()/40.;
-    prepareImage( img,sphere->getPoints(scale,alphax,alphay,alphaz,shX,shY),sphere);
+
+
+    int index = ui->spinBox_AO->value();
+    std::vector<Sphere*> objects1 = objects;
+     std::sort(objects1.begin(),objects1.end(),MainWindow::compareSphere);
+    for(int i =0; i<objects1.size();i++)
+    {
+       Sphere *sphere = objects1[i];
+       prepareImage( img,sphere->getPoints(),sphere);
+    }
     //prepareImage( img,sun->getPoints(scale,alphax,alphay,alphaz,shX,shY),sun);
     update();
 
@@ -64,10 +62,10 @@ std::vector<QVector3D> MainWindow::projection(std::vector<QVector3D> points)
     for (int i = 0;i<points.size();i++)
     {
         p = points[i];
-        if(p.z()>0.01)
+        if(p.z()>0)
         {
-        points[i].setX((p.x()*cameraPosition.z())/(p.z()+cameraPosition.z()));
-        points[i].setY((p.y()*cameraPosition.z())/(p.z()+cameraPosition.z()));
+        points[i].setX((p.x()*cameraPosition.z())/(p.z()-cameraPosition.z()));
+        points[i].setY((p.y()*cameraPosition.z())/(p.z()-cameraPosition.z()));
         }
     }
     return points;
@@ -151,75 +149,7 @@ void MainWindow::prepareImage(QImage *img, std::vector<QVector3D> points,Sphere*
 
 
 
-void MainWindow::on_Rotation_X_sliderMoved(int position)
-{
 
-    transformation();
-}
-void MainWindow::on_Rotation_X_sliderReleased()
-{
-    transformation();
-}
-
-
-void MainWindow::on_ScalingHigh_sliderMoved(int position)
-{
-    transformation();
-}
-
-
-void MainWindow::on_shearingX_sliderMoved(int position)
-{
-    transformation();
-}
-
-void MainWindow::on_shearingY_sliderMoved(int position)
-{
-    transformation();
-}
-
-void MainWindow::on_shearingY_sliderReleased()
-{
-    transformation();
-}
-
-void MainWindow::on_shearingX_sliderReleased()
-{
-    transformation();
-}
-
-void MainWindow::on_ScalingHigh_sliderReleased()
-{
-    transformation();
-}
-
-void MainWindow::on_ScalingWidth_sliderReleased()
-{
-    transformation();
-}
-
-
-void MainWindow::on_tranforamtionX_sliderMoved(int x)
-{
-    sphere->setPosition(x,sphere->getPosition().y(),sphere->getPosition().z());
-    sun->setPosition(x,sun->getPosition().y(),sun->getPosition().z());
-    transformation();
-}
-
-void MainWindow::on_transformationY_sliderMoved(int y)
-{
-    sphere->setPosition(sphere->getPosition().x(),y,sphere->getPosition().z());
-    sun->setPosition(sun->getPosition().x(),y,sun->getPosition().z());
-
-    transformation();
-}
-
-void MainWindow::on_transformationZ_sliderMoved(int z)
-{
-    sphere->setPosition(sphere->getPosition().x(),sphere->getPosition().y(),z);
-     sun->setPosition(sun->getPosition().x(),sun->getPosition().y(),z);
-    transformation();
-}
 
 void MainWindow::straight_line(QVector3D point1,QVector3D point2,QImage *img)
 {
@@ -307,7 +237,7 @@ void MainWindow::paintP(int a,int b,QImage* img)
 
 void MainWindow::paintC(int x, int y, QColor color, QImage *img)
 {
-    x = x + szer/2;
+    x = x +  szer/2;
     y = -y + wys/2;
     if(x>0 && x<szer && y>0 && y<wys)
     {
@@ -345,17 +275,7 @@ void MainWindow::teksturing(std::vector<QVector3D > points,std::vector<QVector3D
 
     N1 = QVector3D(points[2].x()-sphere->getPosition().x(),points[2].y()-sphere->getPosition().y(),points[2].z()-sphere->getPosition().z());
     normals.push_back(N1.normalized());
-    /*
-    QVector3D N1(points[0].x()-points[1].x(),points[0].y()-points[1].y(),points[0].z()-points[1].z());
-    QVector3D N2(points[0].x()-points[2].x(),points[0].y()-points[2].y(),points[0].z()-points[2].z());
-    normals.push_back(N1.normal(N1,N2));
-    N1 = QVector3D(points[1].x()-points[0].x(),points[1].y()-points[0].y(),points[1].z()-points[0].z());
-    N2 = QVector3D(points[1].x()-points[2].x(),points[1].y()-points[2].y(),points[1].z()-points[2].z());
-    normals.push_back(N1.normal(N1,N2));
-    N1 = QVector3D(points[2].x()-points[0].x(),points[2].y()-points[0].y(),points[2].z()-points[0].z());
-    N2 = QVector3D(points[2].x()-points[1].x(),points[2].y()-points[1].y(),points[2].z()-points[1].z());
-    normals.push_back(N1.normal(N1,N2));
-    */
+
 
     double mian = (double)((points2[1].x()-points2[0].x())*(points2[2].y()-points2[0].y())-(points2[1].y()-points2[0].y())*(points2[2].x()-points2[0].x()));
     if(mian< 0.0001)
@@ -386,12 +306,22 @@ void MainWindow::teksturing(std::vector<QVector3D > points,std::vector<QVector3D
             ptr[450*4*i + 4*j + 1] = ptrA[450*4*y + 4*x+1]; // Skladowa GREEN
             ptr[450*4*i + 4*j + 2] = ptrA[450*4*y + 4*x+2]; // Skladowa RED
             */
+            bool sunny = false;
+            for(int i=0;i<light.size();i++)
+                if(light[i]->getPosition().x() == sphere->getPosition().x() && light[i]->getPosition().y() == sphere->getPosition().y() && light[i]->getPosition().z() == sphere->getPosition().z())
+                    sunny = true;
+            if(sunny)
+            {
+                paintC(j,i,img_orginal->pixelColor(x,y),img);
+            }
+            else {
             QVector3D p(j,i,z1);
             QVector3D Normal = interpolationNormal(points2,p,normals);
             QVector3D SpherePoint(x1,y1,z1);
             color = shade(img_orginal->pixelColor(x,y),SpherePoint,Normal);
             paintC(j,i,color,img);
             //paintC(j,i,img_orginal->pixelColor(x,y),img);
+            }
         }
     }
 }
@@ -400,92 +330,159 @@ void MainWindow::teksturing(std::vector<QVector3D > points,std::vector<QVector3D
 
 void MainWindow::on_Rotation_Y_sliderMoved(int position)
 {
+    if(!objects.empty())
+    {
+    int index = ui->spinBox_AO->value();
+    objects[index]->setAplhaY((double)position/360*3.14*2);
     transformation();
+    }
 }
 
 void MainWindow::on_Rotation_Y_sliderReleased()
 {
+    if(!objects.empty())
+    {
     transformation();
+    }
 }
 
 void MainWindow::on_Rotation_Z_sliderMoved(int position)
 {
+    if(!objects.empty())
+    {
+    int index = ui->spinBox_AO->value();
+    objects[index]->setAplhaZ((double)position/360*3.14*2);
     transformation();
+    }
 }
 
 void MainWindow::on_Rotation_Z_sliderReleased()
 {
+    if(!objects.empty())
+    {
     transformation();
+    }
 }
 
-
-QVector3D MainWindow::barycentralPoint(std::vector<QVector3D> p1,std::vector<QVector3D> p2,QVector3D point)
+void MainWindow::on_Rotation_X_sliderMoved(int position)
 {
-    double u,v,w;
-    //u = ;
-    //v = ;
-    //w = ;
-    return QVector3D(u,v,w);
+    if(!objects.empty())
+    {
+    int index = ui->spinBox_AO->value();
+    objects[index]->setAplhaX((double)position/360*3.14*2);
+    transformation();
+    }
 }
+void MainWindow::on_Rotation_X_sliderReleased()
+{
+    if(!objects.empty())
+    {
+    int index = ui->spinBox_AO->value();
+    objects[index]->setAplhaX((double)ui->Rotation_X->value()/360*3.14*2);
+    transformation();
+    }
+}
+
+
+
+void MainWindow::on_tranforamtionX_sliderMoved(int x)
+{
+    if(!objects.empty())
+    {
+    int index = ui->spinBox_AO->value();
+    objects[index]->setPosition(x,objects[index]->getPosition().y(),objects[index]->getPosition().z());
+    transformation();
+    }
+}
+
+void MainWindow::on_transformationY_sliderMoved(int y)
+{
+    if(!objects.empty())
+    {
+    int index = ui->spinBox_AO->value();
+    objects[index]->setPosition(objects[index]->getPosition().x(),y,objects[index]->getPosition().z());
+    transformation();
+    }
+}
+
+void MainWindow::on_transformationZ_sliderMoved(int z)
+{
+    if(!objects.empty())
+    {
+    int index = ui->spinBox_AO->value();
+    objects[index]->setPosition(objects[index]->getPosition().x(),objects[index]->getPosition().y(),z);
+    transformation();
+    }
+}
+
+
 
 QColor MainWindow::shade(QColor color, QVector3D point, QVector3D N)
 {
 
 
 
-    QVector3D V(point.x() - cameraPosition.x(),point.y() - cameraPosition.y(),point.z() - cameraPosition.z());
+    //QVector3D V(point.x() - cameraPosition.x(),point.y() - cameraPosition.y(),point.z() - cameraPosition.z());
+    QVector3D V( cameraPosition.x()-point.x(), cameraPosition.y()-point.y() ,cameraPosition.z()-point.z());
     V.normalize();
-
+    if(light.empty())
+    {
+        QColor col;
+        col.setRgb(0,0,0);
+        return col;
+    }
+double IP =0;
     for(int i=0;i<light.size();i++)
     {
         QVector3D L1 = light[i]->getPosition();
-        QVector3D L(point.x()-L1.x(),point.y()-L1.y(),point.z()-L1.z());
+        //QVector3D L(point.x()-L1.x(),point.y()-L1.y(),point.z()-L1.z());
+        QVector3D L(L1.x()-point.x(),L1.y()-point.y(),L1.z()-point.z());
+
         L.normalize();
         QVector3D R = 2*(L*N)*N-L;
         R.normalize();
 
-        double IP = 0.7*L.dotProduct(L,N)*light[i]->getIntensity() + 0.01*pow(R.dotProduct(R,V),200)*light[i]->getIntensity();
+        IP = IP + 1.2 * std::max(0.f, L.dotProduct(L,N)) * light[i]->getIntensity() + 0.01*pow(std::max(0.f,R.dotProduct(R,V)),200)*light[i]->getIntensity();
 
         /*
         color.setRed(std::max(color.red() + IP,0.));
         color.setGreen(std::max(color.green() + IP,0.));
         color.setBlue(std::max(color.blue() + IP,0.));
         */
-
         IP = std::max(0.,IP);
+        }
+
 
         color.setRed(std::max(std::min(color.red()*IP,255.),0.));
         color.setGreen(std::max(std::min( color.green()*IP,255.),0.));
         color.setBlue(std::max(std::min( color.blue()*IP,255.),0.));
-        return color;
-    }
 
 
-
+    return color;
 }
 
 QVector3D MainWindow::interpolationNormal(std::vector<QVector3D> triangle,QVector3D point,std::vector<QVector3D> normals)
 {
     double sot = triangle[1].y() - triangle[0].y();
-    if(abs(sot) < 0.1)
+    if(abs(sot) < 0)
         sot=1;
 
     QVector3D N1 = normals[0]*(triangle[1].y() - point.y())/(sot)  +  normals[1]*(point.y() - triangle[0].y())/(sot);
 
     sot = triangle[2].y() - triangle[0].y();
-        if(abs(sot) < 0.1)
+        if(abs(sot) < 0)
             sot=1;
     QVector3D N2 = normals[0]*(triangle[2].y() - point.y())/(sot)  +  normals[2]*(point.y() - triangle[0].y())/(sot);
 
     double mian = triangle[0].y()-triangle[1].y();
-    if(abs(mian) > 0.1)
+    if(abs(mian) > 0)
         mian = 1/mian;
     else
         mian = 1;
     double xD = (triangle[0].x()-triangle[1].x())*mian*point.y() + (triangle[0].x()-((triangle[0].x()-triangle[1].x())*mian*triangle[0].y()));
 
     mian = triangle[0].y()-triangle[2].y();
-        if(abs(mian) > 0.1)
+        if(abs(mian) > 0)
             mian = 1/mian;
         else
              mian = 1;
@@ -504,4 +501,42 @@ QVector3D MainWindow::interpolationNormal(std::vector<QVector3D> triangle,QVecto
 
     return N;
 
+}
+
+void MainWindow::on_planetButton_clicked()
+{
+    int x = ui->spinBox_X->value();
+    int y = ui->spinBox_Y->value();
+    int z = ui->spinBox_Z->value();
+    int r = ui->spinBox_R->value();
+
+
+    Sphere*  sphere = new Sphere(x,y,z,r);
+    sphere->setImage(":/earth_daymap.jpg");
+    if(!objects.empty())
+        ui->spinBox_AO->setMaximum(ui->spinBox_AO->maximum()+1);
+    objects.push_back(sphere);
+    transformation();
+}
+
+void MainWindow::on_starButton_clicked()
+{
+    int x = ui->spinBox_X->value();
+    int y = ui->spinBox_Y->value();
+    int z = ui->spinBox_Z->value();
+    int r = ui->spinBox_R->value();
+    double lightIntensity = ui->lightIntensity->value();
+
+    Star* sun = new Star(x,y,z,r,lightIntensity);
+    sun->setImage(":/2k_sun.jpg");
+    if(!objects.empty())
+        ui->spinBox_AO->setMaximum(ui->spinBox_AO->maximum()+1);
+    light.push_back(sun);
+    objects.push_back(sun);
+    transformation();
+}
+
+bool MainWindow::compareSphere(Sphere* i1, Sphere* i2)
+{
+    return (i1->getPosition().z() > i2->getPosition().z());
 }

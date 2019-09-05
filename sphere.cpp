@@ -11,7 +11,11 @@ Sphere::Sphere(int x,int y,int z,double radius)
     this->radius = radius;
     setPosition(x,y,z);
     //img = new QImage(":/earth_daymap.jpg");
+    alphax = 0;
+    alphay = 0;
+    alphaz = (135/360)*3.14*2;
     doPoints();
+
 }
 
 QImage* Sphere::getImage()
@@ -27,7 +31,16 @@ void Sphere::setImage(QString a)
 std::vector<QVector3D> Sphere::getPoints()
 {
     doPoints();
-    return points;
+    std::vector<QVector3D> poi = points;
+    QVector3D pos = this->getPosition();
+    poi = rotation(2,alphaz,rotation(1,alphay,rotation(0,alphax,poi)));
+    for(int i=0;i<poi.size();i++)
+    {
+        poi[i].setX( poi[i].x() + pos.x());
+        poi[i].setY(poi[i].y() + pos.y());
+        poi[i].setZ(poi[i].z() + pos.z());
+    }
+    return poi;
 }
 
 QVector3D Sphere::MappingPoint(int i)
@@ -114,6 +127,8 @@ std::vector<QVector3D> Sphere::scaling(double scale,std::vector<QVector3D> point
     return points;
 }
 
+
+
 std::vector<QVector3D> Sphere::rotation(int mode, double alpha, std::vector<QVector3D> points)
 {
     QVector3D p;
@@ -160,6 +175,35 @@ std::vector<QVector3D> Sphere::shearing(double shX, double shY, std::vector<QVec
     return points;
 }
 
+void Sphere::setAplhaX(double alpha)
+{
+    alphax = alpha;
+}
+
+void Sphere::setAplhaY(double alpha)
+{
+    alphay = alpha;
+}
+
+void Sphere::setAplhaZ(double alpha)
+{
+    alphaz = alpha;
+}
+
+double Sphere::getAlphax()
+{
+    return alphax;
+}
+
+double Sphere::getAlphay()
+{
+    return alphay;
+}
+
+double Sphere::getAlphaz()
+{
+    return alphaz;
+}
 
 /*
 QColor Sphere::diffuse(QVector3D * r, float t){

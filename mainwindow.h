@@ -26,9 +26,8 @@ private:
     int poczY;
     QImage *img;
     QVector3D cameraPosition;
-    Sphere* sphere;
-    Star* sun;
     std::vector<Star*> light;
+    std::vector<Sphere*> objects;
 
     void transformation();
     std::vector<QVector3D> projection(std::vector<QVector3D>);
@@ -40,6 +39,7 @@ private:
     QVector3D barycentralPoint(std::vector<QVector3D> p1,std::vector<QVector3D> p2,QVector3D point);
     QColor shade(QColor color, QVector3D point, QVector3D N);
     QVector3D interpolationNormal(std::vector<QVector3D>,QVector3D,std::vector<QVector3D>);
+    static bool compareSphere(Sphere*,Sphere*);
 
 
 private slots:
@@ -47,20 +47,14 @@ private slots:
    void on_tranforamtionX_sliderMoved(int position);
    void on_transformationY_sliderMoved(int position);
    void on_Rotation_X_sliderMoved(int position);
-   void on_ScalingHigh_sliderMoved(int position);
-
-   void on_shearingX_sliderMoved(int position);
-   void on_shearingY_sliderMoved(int position);
-   void on_shearingY_sliderReleased();
-   void on_shearingX_sliderReleased();
-   void on_ScalingHigh_sliderReleased();
-   void on_ScalingWidth_sliderReleased();
    void on_Rotation_X_sliderReleased();
    void on_transformationZ_sliderMoved(int position);
    void on_Rotation_Y_sliderMoved(int position);
    void on_Rotation_Y_sliderReleased();
    void on_Rotation_Z_sliderMoved(int position);
    void on_Rotation_Z_sliderReleased();
+   void on_planetButton_clicked();
+   void on_starButton_clicked();
 };
 
 #endif // MAINWINDOW_H
